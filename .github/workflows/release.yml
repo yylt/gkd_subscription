@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/gkd.json5
+          generate_release_notes: true
+          name: Release ${{ steps.version.outputs.VERSION }}
+          tag_name: ${{ github.ref }}
+          body: |
+            ## GKD 订阅 ${{ steps.version.outputs.VERSION }}
+            
+            ### 订阅地址
+            ```
+            https://raw.githubusercontent.com/${{ github.repository }}/main/dist/gkd.json5
+            ```
+            
+            ### 国内镜像
+            ```
+            https://fastly.jsdelivr.net/gh/${{ github.repository }}@main/dist/gkd.json5
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
